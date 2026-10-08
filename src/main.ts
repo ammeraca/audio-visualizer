@@ -24,7 +24,7 @@ const parameters: ParametersType = {
   colored: true,
   particleCount: 2000,
   opacity: 0.1,
-  radius: 0.2,
+  radius: 1,
   maxRadius: Math.min(canvas.width, canvas.height) / 2,
 };
 
@@ -76,8 +76,8 @@ function render() {
   let kick = detectFreq(20, 60);
   let voice = detectFreq(100, 300);
   // animateParticles(particles, getVolume(analyserBuffer), parameters.colored);
-  animateParticles(particles, kick, parameters.colored);
-  animateParticles(particles, voice, parameters.colored);
+  animateParticles(0.3, particles, kick, parameters.colored);
+  animateParticles(0.1, particles, voice, false);
 }
 
 function resize() {
@@ -132,6 +132,7 @@ function generateColor() {
 }
 
 function animateParticles(
+  radius: number,
   particles: Particle[],
   volume: number,
   colored?: boolean
@@ -148,7 +149,8 @@ function animateParticles(
       volume * particle.sensor * parameters.maxRadius * Math.random();
 
     const r =
-      parameters.radius * parameters.maxRadius + particle.animatedRadius;
+      radius * parameters.radius * parameters.maxRadius +
+      particle.animatedRadius;
     const x = cx + Math.cos(particle.angle) * r; // pos sur le cercle en largeur
     const y = cy + Math.sin(particle.angle) * r; // same en hauteur
 
