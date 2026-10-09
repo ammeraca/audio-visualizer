@@ -17,6 +17,7 @@ export type ParametersType = {
   voice: boolean;
   melody: boolean;
   kick: boolean;
+  streak: boolean;
 };
 
 const canvas = document.querySelector('canvas')!;
@@ -29,13 +30,13 @@ const parameters: ParametersType = {
   fftSize: 512,
   freq: false,
   color: '#ff0000',
-
+  streak: false,
   colored: true,
   particleSize: 1,
   particleCount: 2000,
   opacity: 0.1,
-  radius: 1,
-  maxRadius: Math.min(canvas.width, canvas.height) / 2,
+  radius: 800,
+  maxRadius: Math.min(canvas.width, canvas.height) / 4,
   style: 'source-over',
   easing: 0.5,
   voice: true,
@@ -46,18 +47,25 @@ const parameters: ParametersType = {
 
 let audioContext: AudioContext;
 let playing = false;
+let started = false;
 let analyser: AnalyserNode;
 let analyserBuffer: Uint8Array<ArrayBuffer>;
 let freqBuffer: Uint8Array<ArrayBuffer>;
 let particles = generateParticles(parameters.particleCount);
+let baseColor = 0;
 
 addEventListener('resize', resize);
 
-addEventListener('click', async () => {
+addEventListener('click', async (e) => {
+  if ((e.target as HTMLElement).closest('.tp-dfwv')) return;
+
   audioContext || (await createContext());
-  playing ? {} : play();
+  playing ? pause() : play();
   resize();
-  tick();
+  if (!started) {
+    started = true;
+    tick();
+  }
 });
 
 async function createContext() {
@@ -84,7 +92,13 @@ function updateParticles() {
   particles = generateParticles(parameters.particleCount);
 }
 
-createGUI(parameters, updateFftSize, updateParticles);
+const pane = createGUI(
+  parameters,
+  updateFftSize,
+  updateParticles,
+  randomizeParticles
+);
+pane;
 
 let kick = 0;
 let voice = 0;
@@ -102,9 +116,11 @@ function render() {
   voice = detectFreq(150, 800);
   melody = detectFreq(255, 15000);
   if (parameters.kick)
-    animateParticles(0.5, particles, kick, parameters.colored);
-  if (parameters.voice) animateParticles(0.1, particles, voice, false);
-  if (parameters.melody) animateParticles(0.3, particles, melody, true);
+    animateParticles(0.5, particles, kick, 200, parameters.colored); // 0.5 radius
+  if (parameters.voice)
+    animateParticles(0.1, particles, voice, 0, parameters.colored);
+  if (parameters.melody)
+    animateParticles(0.3, particles, melody, 20, parameters.colored);
 }
 
 function drawFreq() {
@@ -159,7 +175,7 @@ function getVolume(array: Uint8Array<ArrayBuffer>) {
     const v = (array[i] - 128) / 128; // chaque freq entre 1 et -1, -1 étant le silence
     sum += v * v;
   }
-  return Math.sqrt(sum / array.length) * Math.random();
+  return Math.sqrt(sum / array.length);
 }
 
 // HELP: https://blog.addpipe.com/understanding-audio-frequency-analysis-in-javascript-a-guide-to-using-analysernode-and-getbytefrequencydata/
@@ -180,7 +196,8 @@ function detectFreq(minFreq: number, maxFreq: number) {
 }
 
 function generateColor(variance: number) {
-  const hue = ((performance.now() * 0.02) % 360) * variance; // 0.02 = vitesse du changement
+  const hue =
+    (baseColor * variance + performance.now() * 0.02 * variance) % 360; // 0.02 = vitesse du changement
   return `hsl(${hue}, 80%, 60%)`;
 }
 
@@ -188,6 +205,7 @@ function animateParticles(
   radius: number,
   particles: Particle[],
   volume: number,
+  baseColor: number,
   colored?: boolean
 ) {
   if (volume === 0) return;
@@ -196,25 +214,20 @@ function animateParticles(
 
   for (const particle of particles) {
     const targetSpeed = particle.baseSpeed * (1 + volume);
-    particle.speed += (targetSpeed - particle.speed) * parameters.easing;
+    particle.speed = (targetSpeed - particle.speed) * parameters.easing;
 
     particle.angle += particle.speed;
 
-    particle.animatedRadius =
-      volume *
-      particle.sensor *
-      parameters.maxRadius *
-      Math.random() *
-      parameters.easing;
+    particle.animatedRadius = parameters.streak
+      ? volume * particle.sensor * parameters.maxRadius
+      : volume * particle.sensor * parameters.maxRadius * Math.random();
 
-    console.log(particle.animatedRadius);
-    const r =
-      radius * parameters.radius * parameters.maxRadius +
-      particle.animatedRadius;
+    const r = radius * parameters.radius + particle.animatedRadius;
     const x = cx + Math.cos(particle.angle) * r + Math.random(); // pos sur le cercle en largeur
     const y = cy + Math.sin(particle.angle) * r + Math.random(); // same en hauteur
 
     context.beginPath();
+
     colored
       ? (context.fillStyle = generateColor(radius))
       : (context.fillStyle = 'white');
@@ -224,4 +237,26 @@ function animateParticles(
     context.fill();
     context.closePath();
   }
+}
+
+const rand = (min: number, max: number) => min + Math.random() * (max - min);
+
+// Nombre aléatoire qui respecte le step du slider
+const randomWithStep = (min: number, max: number, step: number) => {
+  const count = Math.floor((max - min) / step);
+  return min + Math.floor(Math.random() * (count + 1)) * step;
+};
+
+function randomizeParticles() {
+  baseColor = randomWithStep(0, 360, 1);
+  parameters.colored = Math.random() < 0.5;
+  parameters.streak = Math.random() < 0.5;
+  parameters.particleCount = randomWithStep(200, 2000, 100);
+  parameters.particleSize = randomWithStep(1, 4, 1);
+  parameters.radius = randomWithStep(0, 500, 10);
+  parameters.maxRadius = randomWithStep(100, 500, 10);
+  parameters.easing = Math.round(rand(0.1, 2) * 10) / 10;
+  parameters.opacity = randomWithStep(0.1, 1, 0.01);
+  pane.refresh();
+  updateParticles();
 }

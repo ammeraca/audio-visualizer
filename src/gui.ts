@@ -4,7 +4,8 @@ import type { ParametersType } from './main';
 export function createGUI(
   parameters: ParametersType,
   onFftSizeChange: () => void,
-  onParticleCountChange: () => void
+  onParticleCountChange: () => void,
+  randomizeParticles: () => void
 ) {
   const pane = new Pane();
   const fBasic = pane.addFolder({
@@ -50,6 +51,7 @@ export function createGUI(
   fBasic.addBinding(parameters, 'freq');
   // fParticles.addBinding(parameters, 'color');
   fParticles.addBinding(parameters, 'colored');
+  fParticles.addBinding(parameters, 'streak');
   fParticles
     .addBinding(parameters, 'particleCount', {
       min: 200,
@@ -58,7 +60,7 @@ export function createGUI(
     .on('change', onParticleCountChange);
   fBasic.addBinding(parameters, 'opacity', {
     min: 0,
-    step: 0.1,
+    step: 0.01,
     max: 1,
   });
   fParticles.addBinding(parameters, 'particleSize', {
@@ -67,7 +69,7 @@ export function createGUI(
   });
   fParticles.addBinding(parameters, 'radius', {
     min: 0,
-    step: 0.1,
+    step: 10,
     // max: 1,
   });
   fParticles.addBinding(parameters, 'maxRadius', {
@@ -83,5 +85,9 @@ export function createGUI(
   fMusic.addBinding(parameters, 'voice');
   fMusic.addBinding(parameters, 'melody');
   fMusic.addBinding(parameters, 'kick');
+  fParticles.addButton({ title: 'Randomize' }).on('click', randomizeParticles);
+
   return pane;
 }
+
+// fParticles.addButton({ title: 'Randomize' }).on('click', randomizeParticles);
