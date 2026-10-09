@@ -109,6 +109,7 @@ function render() {
   parameters.freq ? drawFreq() : {};
   analyser.getByteTimeDomainData(analyserBuffer); // écupérer les données et les copier dans notre tableau
 
+  context.globalCompositeOperation = 'source-over';
   context.fillStyle = `rgba(0, 0, 0, ${parameters.opacity})`;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -119,11 +120,11 @@ function render() {
   rotateParticles(voice);
 
   if (parameters.kick)
-    animateParticles(0.5, particles, kick, 200, parameters.colored); // 0.5 radius
+    animateParticles(0.5, particles, kick, parameters.colored); // 0.5 radius
   if (parameters.voice)
-    animateParticles(0.1, particles, voice, 0, parameters.colored);
+    animateParticles(0.1, particles, voice, parameters.colored);
   if (parameters.melody)
-    animateParticles(0.3, particles, melody, 20, parameters.colored);
+    animateParticles(0.3, particles, melody, parameters.colored);
 }
 
 function drawFreq() {
@@ -216,7 +217,6 @@ function animateParticles(
   radius: number,
   particles: Particle[],
   volume: number,
-  baseColor: number,
   colored?: boolean
 ) {
   const cx = canvas.width / 2;
@@ -239,7 +239,7 @@ function animateParticles(
     context.beginPath();
 
     context.fillStyle = colored ? generateColor(radius) : 'white';
-    context.globalCompositeOperation = parameters.style; // FIXME: overlay ?
+    context.globalCompositeOperation = parameters.style; // FIXED: reset it when fillRect in render()
 
     context.arc(x, y, parameters.particleSize, 0, 2 * Math.PI, true); // 2π = un cercle complet, le point peut se placer partout sur le cercle
     context.fill();
@@ -262,7 +262,7 @@ function randomizeParticles() {
   parameters.radius = randomWithStep(0, 500, 10);
   parameters.maxRadius = randomWithStep(100, 500, 10);
   parameters.easing = randomWithStep(0.1, 1, 0.1);
-  parameters.opacity = randomWithStep(0.1, 1, 0.01);
+  parameters.opacity = randomWithStep(0, 1, 0.01);
   pane.refresh();
   updateParticles();
 }
