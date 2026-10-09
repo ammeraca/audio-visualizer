@@ -7,9 +7,18 @@ export function createGUI(
   onParticleCountChange: () => void
 ) {
   const pane = new Pane();
+  const fBasic = pane.addFolder({
+    title: 'Basic',
+  });
+  const fParticles = pane.addFolder({
+    title: 'Particles',
+  });
+  const fMusic = pane.addFolder({
+    title: 'Music',
+  });
 
-  pane
-    .addBinding(parameters, 'globalCompositeOperation', {
+  fParticles
+    .addBinding(parameters, 'style', {
       options: {
         sourceOver: 'sourceOver',
         lighter: 'lighter',
@@ -21,7 +30,7 @@ export function createGUI(
       },
     })
     .on('change', onFftSizeChange);
-  pane
+  fBasic
     .addBinding(parameters, 'fftSize', {
       options: {
         32: 32,
@@ -38,41 +47,41 @@ export function createGUI(
       },
     })
     .on('change', onFftSizeChange);
-  pane.addBinding(parameters, 'freq');
-  pane.addBinding(parameters, 'color');
-  pane.addBinding(parameters, 'colored');
-  pane
+  fBasic.addBinding(parameters, 'freq');
+  // fParticles.addBinding(parameters, 'color');
+  fParticles.addBinding(parameters, 'colored');
+  fParticles
     .addBinding(parameters, 'particleCount', {
       min: 200,
       step: 100,
     })
     .on('change', onParticleCountChange);
-  pane.addBinding(parameters, 'opacity', {
+  fBasic.addBinding(parameters, 'opacity', {
     min: 0,
     step: 0.1,
     max: 1,
   });
-  pane.addBinding(parameters, 'particleSize', {
+  fParticles.addBinding(parameters, 'particleSize', {
     min: 1,
     step: 1,
   });
-  pane.addBinding(parameters, 'radius', {
+  fParticles.addBinding(parameters, 'radius', {
     min: 0,
     step: 0.1,
     // max: 1,
   });
-  pane.addBinding(parameters, 'maxRadius', {
+  fParticles.addBinding(parameters, 'maxRadius', {
     min: 0,
     step: 100,
     // max: 1,
   });
-  pane.addBinding(parameters, 'easing', {
+  fParticles.addBinding(parameters, 'easing', {
     min: 0,
     step: 0.1,
     // max: 1,
   });
-  pane.addBinding(parameters, 'voice');
-  pane.addBinding(parameters, 'melody');
-  pane.addBinding(parameters, 'kick');
+  fMusic.addBinding(parameters, 'voice');
+  fMusic.addBinding(parameters, 'melody');
+  fMusic.addBinding(parameters, 'kick');
   return pane;
 }

@@ -12,7 +12,7 @@ export type ParametersType = {
   opacity: number;
   radius: number;
   maxRadius: number;
-  globalCompositeOperation: GlobalCompositeOperation;
+  style: GlobalCompositeOperation;
   easing: number;
   voice: boolean;
   melody: boolean;
@@ -36,7 +36,7 @@ const parameters: ParametersType = {
   opacity: 0.1,
   radius: 1,
   maxRadius: Math.min(canvas.width, canvas.height) / 2,
-  globalCompositeOperation: 'source-over',
+  style: 'source-over',
   easing: 0.5,
   voice: true,
   melody: true,
@@ -91,6 +91,7 @@ let voice = 0;
 let melody = 0;
 
 function render() {
+  if (!playing) return;
   parameters.freq ? drawFreq() : {};
   analyser.getByteTimeDomainData(analyserBuffer); // écupérer les données et les copier dans notre tableau
 
@@ -206,6 +207,7 @@ function animateParticles(
       Math.random() *
       parameters.easing;
 
+    console.log(particle.animatedRadius);
     const r =
       radius * parameters.radius * parameters.maxRadius +
       particle.animatedRadius;
@@ -216,7 +218,7 @@ function animateParticles(
     colored
       ? (context.fillStyle = generateColor(radius))
       : (context.fillStyle = 'white');
-    // context.globalCompositeOperation = parameters.globalCompositeOperation; FIXME: overlay ?
+    context.globalCompositeOperation = parameters.style; // FIXME: overlay ?
 
     context.arc(x, y, parameters.particleSize, 0, 2 * Math.PI, true); // 2π = un cercle complet, le point peut se placer partout sur le cercle
     context.fill();
