@@ -115,6 +115,9 @@ function render() {
   kick = detectFreq(30, 80);
   voice = detectFreq(150, 800);
   melody = detectFreq(255, 15000);
+
+  rotateParticles(voice);
+
   if (parameters.kick)
     animateParticles(0.5, particles, kick, 200, parameters.colored); // 0.5 radius
   if (parameters.voice)
@@ -201,6 +204,14 @@ function generateColor(variance: number) {
   return `hsl(${hue}, 80%, 60%)`;
 }
 
+function rotateParticles(volume: number) {
+  for (const particle of particles) {
+    const targetSpeed = particle.baseSpeed * (1 + volume);
+    particle.speed += (targetSpeed - particle.speed) * parameters.easing; // FIXME:
+    particle.angle += particle.speed;
+  }
+}
+
 function animateParticles(
   radius: number,
   particles: Particle[],
@@ -208,19 +219,18 @@ function animateParticles(
   baseColor: number,
   colored?: boolean
 ) {
-  if (volume === 0) return;
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
 
+  // const up = parameters.easing; FIXME:
+  // const down = parameters.easing * 0.3;
+
   for (const particle of particles) {
-    const targetSpeed = particle.baseSpeed * (1 + volume);
-    particle.speed = (targetSpeed - particle.speed) * parameters.easing;
-
-    particle.angle += particle.speed;
-
-    particle.animatedRadius = parameters.streak
+    const target = parameters.streak
       ? volume * particle.sensor * parameters.maxRadius
       : volume * particle.sensor * parameters.maxRadius * Math.random();
+
+    particle.animatedRadius = target;
 
     const r = radius * parameters.radius + particle.animatedRadius;
     const x = cx + Math.cos(particle.angle) * r + Math.random(); // pos sur le cercle en largeur
@@ -228,9 +238,7 @@ function animateParticles(
 
     context.beginPath();
 
-    colored
-      ? (context.fillStyle = generateColor(radius))
-      : (context.fillStyle = 'white');
+    context.fillStyle = colored ? generateColor(radius) : 'white';
     context.globalCompositeOperation = parameters.style; // FIXME: overlay ?
 
     context.arc(x, y, parameters.particleSize, 0, 2 * Math.PI, true); // 2π = un cercle complet, le point peut se placer partout sur le cercle
@@ -238,8 +246,6 @@ function animateParticles(
     context.closePath();
   }
 }
-
-const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
 // Nombre aléatoire qui respecte le step du slider
 const randomWithStep = (min: number, max: number, step: number) => {
@@ -255,7 +261,7 @@ function randomizeParticles() {
   parameters.particleSize = randomWithStep(1, 4, 1);
   parameters.radius = randomWithStep(0, 500, 10);
   parameters.maxRadius = randomWithStep(100, 500, 10);
-  parameters.easing = Math.round(rand(0.1, 2) * 10) / 10;
+  parameters.easing = randomWithStep(0.1, 1, 0.1);
   parameters.opacity = randomWithStep(0.1, 1, 0.01);
   pane.refresh();
   updateParticles();
