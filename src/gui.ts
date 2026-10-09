@@ -86,7 +86,7 @@ export function createGUI(
   fMusic.addBinding(parameters, 'melody');
   fMusic.addBinding(parameters, 'kick');
   fParticles.addButton({ title: 'Randomize' }).on('click', randomizeParticles);
-
+  fParticles.addBinding(parameters, 'squared');
   return pane;
 }
 

@@ -18,6 +18,7 @@ export type ParametersType = {
   melody: boolean;
   kick: boolean;
   frictioned: boolean;
+  squared: boolean;
 };
 
 const canvas = document.querySelector('canvas')!;
@@ -33,16 +34,16 @@ const parameters: ParametersType = {
   frictioned: false,
   colored: true,
   particleSize: 1,
-  particleCount: 2000,
-  opacity: 0.1,
-  radius: 800,
-  maxRadius: Math.min(canvas.width, canvas.height) / 4,
-  style: 'source-over',
-  easing: 0.5,
+  particleCount: 700,
+  opacity: 0.01,
+  radius: 150,
+  maxRadius: Math.min(canvas.width, canvas.height) / 2,
+  style: 'lighter',
+  easing: 0.2,
   voice: true,
   melody: true,
   kick: true,
-  // squared: false, FIXME:
+  squared: false,
 };
 
 let audioContext: AudioContext;
@@ -98,7 +99,10 @@ const pane = createGUI(
   updateParticles,
   randomizeParticles
 );
-pane;
+// const pane =
+//   location.hash === '#debug'
+//     ? createGUI(parameters, updateFftSize, updateParticles, randomizeParticles)
+//     : {};
 
 let kick = 0;
 let voice = 0;
@@ -208,7 +212,7 @@ function generateColor(variance: number) {
 function rotateParticles(volume: number) {
   for (const particle of particles) {
     const targetSpeed = particle.baseSpeed * (1 + volume);
-    particle.speed += (targetSpeed - particle.speed) * parameters.easing; // FIXME:
+    particle.speed += (targetSpeed - particle.speed) * parameters.easing;
     particle.angle += particle.speed;
   }
 }
@@ -228,8 +232,8 @@ function animateParticles(
 
   for (const particle of particles) {
     const target = parameters.frictioned
-      ? volume * particle.sensor * parameters.maxRadius
-      : volume * particle.sensor * parameters.maxRadius * Math.random();
+      ? volume * particle.sensor * parameters.maxRadius * Math.random()
+      : volume * particle.sensor * parameters.maxRadius;
 
     const current = particle.animatedRadius[layer];
     const ease = target > current ? up : down;
@@ -241,12 +245,20 @@ function animateParticles(
 
     context.beginPath();
 
-    context.fillStyle = colored ? generateColor(radius) : 'white';
     context.globalCompositeOperation = parameters.style; // FIXED: reset it when fillRect in render()
 
-    context.arc(x, y, parameters.particleSize, 0, 2 * Math.PI, true); // 2π = un cercle complet, le point peut se placer partout sur le cercle
-    context.fill();
-    // context.closePath();
+    if (parameters.squared) {
+      context.strokeStyle = colored ? generateColor(radius) : '#aaaaaa';
+
+      const size = parameters.particleSize * 4;
+      context.strokeRect(x - size / 2, y - size / 2, size, size);
+      context.closePath();
+    } else {
+      context.fillStyle = colored ? generateColor(radius) : '#aaaaaa';
+      context.arc(x, y, parameters.particleSize, 0, 2 * Math.PI); // 2π = un cercle complet, le point peut se placer partout sur le cercle
+      context.fill();
+    }
+    context.closePath();
   }
 }
 
@@ -266,6 +278,7 @@ function randomizeParticles() {
   parameters.maxRadius = randomWithStep(100, 500, 10);
   parameters.easing = randomWithStep(0.1, 1, 0.1);
   parameters.opacity = randomWithStep(0, 1, 0.01);
+  parameters.squared = Math.random() < 0.5;
   pane.refresh();
   updateParticles();
 }
