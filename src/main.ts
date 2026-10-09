@@ -4,12 +4,19 @@ import './style.css';
 
 export type ParametersType = {
   fftSize: number;
+  freq: boolean;
   color: string;
   colored: boolean;
+  particleSize: number;
   particleCount: number;
   opacity: number;
   radius: number;
   maxRadius: number;
+  globalCompositeOperation: GlobalCompositeOperation;
+  easing: number;
+  voice: boolean;
+  melody: boolean;
+  kick: boolean;
 };
 
 const canvas = document.querySelector('canvas')!;
@@ -19,13 +26,22 @@ const audioElement = document.querySelector('audio')!;
 resize();
 
 const parameters: ParametersType = {
-  fftSize: 1024,
+  fftSize: 512,
+  freq: false,
   color: '#ff0000',
+
   colored: true,
+  particleSize: 1,
   particleCount: 2000,
   opacity: 0.1,
   radius: 1,
   maxRadius: Math.min(canvas.width, canvas.height) / 2,
+  globalCompositeOperation: 'source-over',
+  easing: 0.5,
+  voice: true,
+  melody: true,
+  kick: true,
+  // squared: false, FIXME:
 };
 
 let audioContext: AudioContext;
@@ -33,6 +49,7 @@ let playing = false;
 let analyser: AnalyserNode;
 let analyserBuffer: Uint8Array<ArrayBuffer>;
 let freqBuffer: Uint8Array<ArrayBuffer>;
+let particles = generateParticles(parameters.particleCount);
 
 addEventListener('resize', resize);
 
@@ -63,21 +80,56 @@ function updateFftSize() {
   freqBuffer = new Uint8Array(analyser.fftSize);
 }
 
-createGUI(parameters, updateFftSize);
+function updateParticles() {
+  particles = generateParticles(parameters.particleCount);
+}
 
-const particles = generateParticles(parameters.particleCount);
+createGUI(parameters, updateFftSize, updateParticles);
+
+let kick = 0;
+let voice = 0;
+let melody = 0;
 
 function render() {
+  parameters.freq ? drawFreq() : {};
   analyser.getByteTimeDomainData(analyserBuffer); // écupérer les données et les copier dans notre tableau
 
   context.fillStyle = `rgba(0, 0, 0, ${parameters.opacity})`;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  let kick = detectFreq(20, 60);
-  let voice = detectFreq(100, 300);
-  // animateParticles(particles, getVolume(analyserBuffer), parameters.colored);
-  animateParticles(0.3, particles, kick, parameters.colored);
-  animateParticles(0.1, particles, voice, false);
+  kick = detectFreq(30, 80);
+  voice = detectFreq(150, 800);
+  melody = detectFreq(255, 15000);
+  if (parameters.kick)
+    animateParticles(0.5, particles, kick, parameters.colored);
+  if (parameters.voice) animateParticles(0.1, particles, voice, false);
+  if (parameters.melody) animateParticles(0.3, particles, melody, true);
+}
+
+function drawFreq() {
+  context.lineWidth = 1;
+  context.strokeStyle = '#fff';
+
+  context.beginPath();
+
+  const sliceWidth = canvas.width / analyserBuffer.length;
+  let x = 0;
+
+  for (let i = 0; i < analyserBuffer.length; i++) {
+    const v = analyserBuffer[i] / 128;
+    const y = (v * canvas.height) / 2;
+
+    if (i === 0) {
+      context.moveTo(x, y);
+    } else {
+      context.lineTo(x, y);
+    }
+
+    x += sliceWidth;
+  }
+
+  context.lineTo(canvas.width, canvas.height / 2);
+  context.stroke();
 }
 
 function resize() {
@@ -126,8 +178,8 @@ function detectFreq(minFreq: number, maxFreq: number) {
   return getVolume(kickData) > 0.5 ? 1 : 0;
 }
 
-function generateColor() {
-  const hue = (performance.now() * 0.02) % 360; // 0.02 = vitesse du changement
+function generateColor(variance: number) {
+  const hue = ((performance.now() * 0.02) % 360) * variance; // 0.02 = vitesse du changement
   return `hsl(${hue}, 80%, 60%)`;
 }
 
@@ -137,30 +189,36 @@ function animateParticles(
   volume: number,
   colored?: boolean
 ) {
+  if (volume === 0) return;
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
 
-  // context.filter = 'brightness(1.75)';
   for (const particle of particles) {
-    // var plusOrMinus = Math.random() < 0.5 ? -1 : 1;
-    particle.angle += particle.speed; // horaire si positif
+    const targetSpeed = particle.baseSpeed * (1 + volume);
+    particle.speed += (targetSpeed - particle.speed) * parameters.easing;
+
+    particle.angle += particle.speed;
 
     particle.animatedRadius =
-      volume * particle.sensor * parameters.maxRadius * Math.random();
+      volume *
+      particle.sensor *
+      parameters.maxRadius *
+      Math.random() *
+      parameters.easing;
 
     const r =
       radius * parameters.radius * parameters.maxRadius +
       particle.animatedRadius;
-    const x = cx + Math.cos(particle.angle) * r; // pos sur le cercle en largeur
-    const y = cy + Math.sin(particle.angle) * r; // same en hauteur
+    const x = cx + Math.cos(particle.angle) * r + Math.random(); // pos sur le cercle en largeur
+    const y = cy + Math.sin(particle.angle) * r + Math.random(); // same en hauteur
 
     context.beginPath();
     colored
-      ? (context.fillStyle = generateColor())
+      ? (context.fillStyle = generateColor(radius))
       : (context.fillStyle = 'white');
-    // context.shadowColor = 'white';
-    // context.shadowBlur = 5;
-    context.arc(x, y, particle.size, 0, 2 * Math.PI, true); // 2π = un cercle complet, le point peut se placer partout sur le cercle
+    // context.globalCompositeOperation = parameters.globalCompositeOperation; FIXME: overlay ?
+
+    context.arc(x, y, parameters.particleSize, 0, 2 * Math.PI, true); // 2π = un cercle complet, le point peut se placer partout sur le cercle
     context.fill();
     context.closePath();
   }
