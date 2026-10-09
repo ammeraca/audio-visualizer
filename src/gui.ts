@@ -51,7 +51,7 @@ export function createGUI(
   fBasic.addBinding(parameters, 'freq');
   // fParticles.addBinding(parameters, 'color');
   fParticles.addBinding(parameters, 'colored');
-  fParticles.addBinding(parameters, 'streak');
+  fParticles.addBinding(parameters, 'frictioned');
   fParticles
     .addBinding(parameters, 'particleCount', {
       min: 200,

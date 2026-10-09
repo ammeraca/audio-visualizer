@@ -17,7 +17,7 @@ export type ParametersType = {
   voice: boolean;
   melody: boolean;
   kick: boolean;
-  streak: boolean;
+  frictioned: boolean;
 };
 
 const canvas = document.querySelector('canvas')!;
@@ -30,7 +30,7 @@ const parameters: ParametersType = {
   fftSize: 512,
   freq: false,
   color: '#ff0000',
-  streak: false,
+  frictioned: false,
   colored: true,
   particleSize: 1,
   particleCount: 2000,
@@ -120,11 +120,11 @@ function render() {
   rotateParticles(voice);
 
   if (parameters.kick)
-    animateParticles(0.5, particles, kick, parameters.colored); // 0.5 radius
+    animateParticles(0.5, particles, kick, 2, parameters.colored); // 0.5 radius
   if (parameters.voice)
-    animateParticles(0.1, particles, voice, parameters.colored);
+    animateParticles(0.1, particles, voice, 0, parameters.colored);
   if (parameters.melody)
-    animateParticles(0.3, particles, melody, parameters.colored);
+    animateParticles(0.3, particles, melody, 1, parameters.colored);
 }
 
 function drawFreq() {
@@ -217,22 +217,25 @@ function animateParticles(
   radius: number,
   particles: Particle[],
   volume: number,
+  layer: number,
   colored?: boolean
 ) {
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
 
-  // const up = parameters.easing; FIXME:
-  // const down = parameters.easing * 0.3;
+  const up = parameters.easing;
+  const down = parameters.easing * 0.3;
 
   for (const particle of particles) {
-    const target = parameters.streak
+    const target = parameters.frictioned
       ? volume * particle.sensor * parameters.maxRadius
       : volume * particle.sensor * parameters.maxRadius * Math.random();
 
-    particle.animatedRadius = target;
+    const current = particle.animatedRadius[layer];
+    const ease = target > current ? up : down;
+    particle.animatedRadius[layer] = current + (target - current) * ease;
 
-    const r = radius * parameters.radius + particle.animatedRadius;
+    const r = radius * parameters.radius + particle.animatedRadius[layer];
     const x = cx + Math.cos(particle.angle) * r + Math.random(); // pos sur le cercle en largeur
     const y = cy + Math.sin(particle.angle) * r + Math.random(); // same en hauteur
 
@@ -243,7 +246,7 @@ function animateParticles(
 
     context.arc(x, y, parameters.particleSize, 0, 2 * Math.PI, true); // 2π = un cercle complet, le point peut se placer partout sur le cercle
     context.fill();
-    context.closePath();
+    // context.closePath();
   }
 }
 
@@ -256,7 +259,7 @@ const randomWithStep = (min: number, max: number, step: number) => {
 function randomizeParticles() {
   baseColor = randomWithStep(0, 360, 1);
   parameters.colored = Math.random() < 0.5;
-  parameters.streak = Math.random() < 0.5;
+  parameters.frictioned = Math.random() < 0.5;
   parameters.particleCount = randomWithStep(200, 2000, 100);
   parameters.particleSize = randomWithStep(1, 4, 1);
   parameters.radius = randomWithStep(0, 500, 10);

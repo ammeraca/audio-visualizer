@@ -4,7 +4,7 @@ export type Particle = {
   speed: number;
   size: number;
   sensor: number;
-  animatedRadius: number;
+  animatedRadius: number[];
 };
 
 function generateSpeed(orientation: number) {
@@ -21,7 +21,7 @@ export function generateParticles(particleCount: number) {
       speed: baseSpeed,
       size: Math.random(),
       sensor: 0.2 + Math.random() * 0.8,
-      animatedRadius: 0,
+      animatedRadius: [0, 0, 0],
     };
   });
 
